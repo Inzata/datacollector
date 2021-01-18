@@ -196,13 +196,13 @@ fi
 jdk_version() {
   local result
   local java_cmd
-  if [[ -n $(type -p java) ]]
-  then
-    java_cmd=java
-  elif [[ (-n "$JAVA_HOME") && (-x "$JAVA_HOME/bin/java") ]]
-  then
+  #if [[ -n $(type -p java) ]]
+  #then
+  #  java_cmd=java
+  #elif [[ (-n "$JAVA_HOME") && (-x "$JAVA_HOME/bin/java") ]]
+  #then
     java_cmd="$JAVA_HOME/bin/java"
-  fi
+  #fi
   local IFS=$'\n'
   # remove \r for Cygwin
   local lines=$("$java_cmd" -Xms32M -Xmx32M -version 2>&1 | tr '\r' '\n')
@@ -338,6 +338,9 @@ fi
 
 cd ${SDC_DIST}
 
+ulimit -Sn 128000
+ulimit -Hn 128000
+
 ulimit=`ulimit -n`
 if [[ $ulimit -lt $SDC_FILE_LIMIT ]]; then
   echo "Configuration of maximum open file limit is too low: $ulimit (expected at least $SDC_FILE_LIMIT). Please consult https://goo.gl/6dmjXd"
@@ -354,6 +357,10 @@ fi
 # Restart will not be possible in such a case
 
 if [ $EXEC -eq 1 ]; then
+  #echo "Doing " ${JAVA} -classpath ${BOOTSTRAP_CLASSPATH} ${SDC_JAVA_OPTS} com.streamsets.pipeline.BootstrapMain \
+  #     -mainClass ${SDC_MAIN_CLASS} -apiClasspath "${API_CLASSPATH}" -containerClasspath "${CONTAINER_CLASSPATH}" \
+  #     -streamsetsLibrariesDir "${STREAMSETS_LIBRARIES_DIR}" -userLibrariesDir "${USER_LIBRARIES_DIR}" -configDir ${SDC_CONF} \
+  #     -libsCommonLibDir "${LIBS_COMMON_LIB_DIR}" ${EXTRA_OPTIONS}
   exec ${JAVA} -classpath ${BOOTSTRAP_CLASSPATH} ${SDC_JAVA_OPTS} com.streamsets.pipeline.BootstrapMain \
        -mainClass ${SDC_MAIN_CLASS} -apiClasspath "${API_CLASSPATH}" -containerClasspath "${CONTAINER_CLASSPATH}" \
        -streamsetsLibrariesDir "${STREAMSETS_LIBRARIES_DIR}" -userLibrariesDir "${USER_LIBRARIES_DIR}" -configDir ${SDC_CONF} \
@@ -361,6 +368,10 @@ if [ $EXEC -eq 1 ]; then
 
   status=$?
 else
+  #echo "Doing " ${JAVA} -classpath ${BOOTSTRAP_CLASSPATH} ${SDC_JAVA_OPTS} com.streamsets.pipeline.BootstrapMain \
+  #  -mainClass ${SDC_MAIN_CLASS} -apiClasspath "${API_CLASSPATH}" -containerClasspath "${CONTAINER_CLASSPATH}" \
+  #  -streamsetsLibrariesDir "${STREAMSETS_LIBRARIES_DIR}" -userLibrariesDir "${USER_LIBRARIES_DIR}" -configDir ${SDC_CONF} \
+  #  -libsCommonLibDir "${LIBS_COMMON_LIB_DIR}" ${EXTRA_OPTIONS}
   status=88
   while [ $status = 88 ]; do
     ${JAVA} -classpath ${BOOTSTRAP_CLASSPATH} ${SDC_JAVA_OPTS} com.streamsets.pipeline.BootstrapMain \

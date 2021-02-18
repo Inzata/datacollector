@@ -26,6 +26,7 @@ import com.streamsets.datacollector.runner.Pipeline;
 import com.streamsets.datacollector.runner.PipelineRuntimeException;
 import com.streamsets.datacollector.util.Configuration;
 import com.streamsets.datacollector.util.ContainerError;
+import com.streamsets.datacollector.util.IrrecoverableDestinationException;
 import com.streamsets.datacollector.util.PipelineException;
 import com.streamsets.datacollector.validation.Issue;
 import com.streamsets.datacollector.validation.Issues;
@@ -86,6 +87,7 @@ public class ProductionPipeline {
     boolean errorWhileInitializing = false;
     boolean errorWhileRunning = false;
     Throwable runningException = null;
+    Throwable destroyingException = null;
     boolean errorWhileDestroying = false;
     boolean isRecoverable = true;
     executionFailed = false;
@@ -170,6 +172,7 @@ public class ProductionPipeline {
           LOG.warn("Error while calling destroy: " + e.toString(), e);
           stateChanged(PipelineStatus.STOPPING_ERROR, e.toString(), null);
           errorWhileDestroying = true;
+          destroyingException = e;
           // If this is the first error that happened during the execution, persist the reasoning in the message, otherwise
           // keep the original message so that terminal state have the original error rather then any subsequent one.
           if(runningErrorMsg == null) {
@@ -185,6 +188,21 @@ public class ProductionPipeline {
             if (errorWhileRunning && runningException instanceof OnRecordErrorException) {
               retry = false;
             }
+            boolean irrecoverableDestExc = false;
+            if (destroyingException instanceof IrrecoverableDestinationException) {
+              irrecoverableDestExc = true;
+            }
+
+            try {
+              Class expectedErrorClass = destroyingException.getClass().getClassLoader().loadClass("com.streamsets.datacollector.util.IrrecoverableDestinationException");
+              if (expectedErrorClass.isInstance(destroyingException)) {
+                irrecoverableDestExc = true;
+              }
+            } catch (ClassNotFoundException cnf) {}
+
+            if (irrecoverableDestExc) {
+              retry = false;
+            }
 
             // In case of any error, persist that information
             executionFailed = true;
@@ -197,7 +215,11 @@ public class ProductionPipeline {
             } else if(errorWhileRunning) {
               stateChanged(PipelineStatus.RUN_ERROR, runningErrorMsg, null);
             } else if(errorWhileDestroying) {
-              stateChanged(PipelineStatus.STOP_ERROR, runningErrorMsg, null);
+              if (irrecoverableDestExc) {
+                stateChanged(PipelineStatus.RUN_ERROR, runningErrorMsg, null);
+              } else {
+                stateChanged(PipelineStatus.STOP_ERROR, runningErrorMsg, null);
+              }
             }
           } else if(finishing) {
             // Graceful shutdown

@@ -73,6 +73,7 @@ import com.streamsets.datacollector.usagestats.StatsCollector;
 import com.streamsets.datacollector.util.AggregatorUtil;
 import com.streamsets.datacollector.util.Configuration;
 import com.streamsets.datacollector.util.ContainerError;
+import com.streamsets.datacollector.util.IrrecoverableDestinationException;
 import com.streamsets.datacollector.util.PipelineException;
 import com.streamsets.datacollector.util.ValidationUtil;
 import com.streamsets.pipeline.api.Batch;
@@ -758,8 +759,22 @@ public class ProductionPipelineRunner implements PipelineRunner, PushSourceConte
           try {
             LOG.trace("Running destroy for {}", instanceName);
             pipe.destroy(finalPipeBatch);
+          } catch (IrrecoverableDestinationException e) {
+            LOG.warn("Irrecoverable exception thrown while destroying pipe", e);
+            throw(e);
           } catch (RuntimeException e) {
-            LOG.warn("Exception throw while destroying pipe", e);
+            boolean rethrow = false;
+            try {
+              Class expectedErrorClass = e.getClass().getClassLoader().loadClass("com.streamsets.datacollector.util.IrrecoverableDestinationException");
+              if (expectedErrorClass.isInstance(e)) {
+                rethrow = true;
+              }
+            } catch (ClassNotFoundException cnf) {}
+            if (rethrow) {
+              throw(e);
+            } else {
+              LOG.warn("Exception throw while destroying pipe", e);
+            }
           }
         });
 

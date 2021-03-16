@@ -189,16 +189,21 @@ public class ProductionPipeline {
               retry = false;
             }
             boolean irrecoverableDestExc = false;
-            if (destroyingException instanceof IrrecoverableDestinationException) {
-              irrecoverableDestExc = true;
-            }
 
-            try {
-              Class expectedErrorClass = destroyingException.getClass().getClassLoader().loadClass("com.streamsets.datacollector.util.IrrecoverableDestinationException");
-              if (expectedErrorClass.isInstance(destroyingException)) {
+
+            if (destroyingException != null) {
+              if (destroyingException instanceof IrrecoverableDestinationException) {
                 irrecoverableDestExc = true;
               }
-            } catch (ClassNotFoundException cnf) {}
+
+              try {
+                Class expectedErrorClass = destroyingException.getClass().getClassLoader().loadClass("com.streamsets.datacollector.util.IrrecoverableDestinationException");
+                if (expectedErrorClass.isInstance(destroyingException)) {
+                  irrecoverableDestExc = true;
+                }
+              } catch (Exception cnf) {}
+
+            }
 
             if (irrecoverableDestExc) {
               retry = false;

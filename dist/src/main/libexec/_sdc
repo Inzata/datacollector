@@ -168,13 +168,13 @@ SDC_JAVA_OPTS="${SDC_JAVA_OPTS} -Dsdc.libraries.dir=${STREAMSETS_LIBRARIES_DIR} 
 
 if [ -f "${SDC_CONF}/keystore.jks" ]; then
   if [ -f "${SDC_CONF}/keystore-password.txt" ]; then
-     SDC_JAVA_OPTS="${SDC_JAVA_OPTS} -Djavax.net.ssl.keyStore=/etc/sdc/keystore.jks -Djavax.net.ssl.keyStorePassword=$(cat ${SDC_CONF}/keystore-password.txt)"
+     SDC_JAVA_OPTS="${SDC_JAVA_OPTS} -Djavax.net.ssl.keyStore=${SDC_CONF}/keystore.jks -Djavax.net.ssl.keyStorePassword=$(cat ${SDC_CONF}/keystore-password.txt)"
   fi
 fi
 
 if [ -f "${SDC_CONF}/truststore.jks" ]; then
   if [ -f "${SDC_CONF}/truststore-password.txt" ]; then
-     SDC_JAVA_OPTS="${SDC_JAVA_OPTS} -Djavax.net.ssl.trustStore=/etc/sdc/truststore.jks -Djavax.net.ssl.trustStorePassword=$(cat ${SDC_CONF}/truststore-password.txt)"
+     SDC_JAVA_OPTS="${SDC_JAVA_OPTS} -Djavax.net.ssl.trustStore=${SDC_CONF}/truststore.jks -Djavax.net.ssl.trustStorePassword=$(cat ${SDC_CONF}/truststore-password.txt)"
   fi
 fi
 

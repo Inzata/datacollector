@@ -23,6 +23,7 @@ public enum Errors implements ErrorCode {
   BIGQUERY_02("Query Job execution error: '{}'"),
   BIGQUERY_04("Credentials file '{}' not found"),
   BIGQUERY_05("Error reading credentials file"),
+  BIGQUERY_06("Invalid name of the destination table. Expected format is dataset_name.table_name"),
 
   BIGQUERY_10("Error evaluating expression for the record. Reason : {}"),
   BIGQUERY_11("Error inserting record. Reasons : {}, Messages : {}"),

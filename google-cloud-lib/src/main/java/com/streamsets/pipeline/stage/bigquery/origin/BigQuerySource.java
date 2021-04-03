@@ -18,8 +18,10 @@ package com.streamsets.pipeline.stage.bigquery.origin;
 import com.google.auth.Credentials;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableResult;
 import com.google.common.annotations.VisibleForTesting;
 import com.streamsets.pipeline.api.BatchMaker;
@@ -39,6 +41,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.streamsets.pipeline.stage.bigquery.lib.Errors.BIGQUERY_05;
+import static com.streamsets.pipeline.stage.bigquery.lib.Errors.BIGQUERY_06;
 import static com.streamsets.pipeline.stage.bigquery.lib.Errors.BIGQUERY_19;
 
 public class BigQuerySource extends BaseSource {
@@ -49,6 +52,7 @@ public class BigQuerySource extends BaseSource {
   private BigQueryDelegate delegate;
   private TableResult result;
   private Schema schema;
+  private TableId destinationTableId;
   private int totalCount;
   private boolean checkBatchSize = true;
 
@@ -59,6 +63,7 @@ public class BigQuerySource extends BaseSource {
   @Override
   public void destroy() {
     result = null;
+    deleteDestinationTable();
   }
 
   @Override
@@ -79,6 +84,26 @@ public class BigQuerySource extends BaseSource {
         }
       }
     });
+
+    if (conf.allowLargeResults) {
+      String[] dtSplit = conf.destinationTableName.split("\\.");
+      if (dtSplit.length != 2) {
+        issues.add(getContext().createConfigIssue(
+            Groups.BIGQUERY.name(), "destinationTableName", BIGQUERY_06)
+        );
+      } else {
+        String destDataset = dtSplit[0].trim();
+        String destTable = dtSplit[1].trim();
+        if ((destDataset.length() < 1) ||
+            (destTable.length() < 1)) {
+          issues.add(getContext().createConfigIssue(
+              Groups.BIGQUERY.name(), "destinationTableName", BIGQUERY_06)
+          );
+        } else {
+          destinationTableId = TableId.of(destDataset, destTable);
+        }
+      }
+    }
     return issues;
   }
 
@@ -97,10 +122,17 @@ public class BigQuerySource extends BaseSource {
     }
 
     if (result == null) {
-      QueryJobConfiguration queryRequest = QueryJobConfiguration.newBuilder(conf.query)
+      QueryJobConfiguration.Builder queryRequestBuilder = QueryJobConfiguration.newBuilder(conf.query)
           .setUseQueryCache(conf.useQueryCache)
-          .setUseLegacySql(conf.useLegacySql)
-          .build();
+          .setUseLegacySql(conf.useLegacySql);
+
+      if (conf.allowLargeResults) {
+        queryRequestBuilder.setAllowLargeResults(conf.allowLargeResults)
+            .setDestinationTable(destinationTableId)
+            .setWriteDisposition(JobInfo.WriteDisposition.WRITE_TRUNCATE);
+      }
+
+      QueryJobConfiguration queryRequest = queryRequestBuilder.build();
       result = runQuery(queryRequest, pageSize);
       schema = result.getSchema();
       totalCount = 0;
@@ -140,5 +172,11 @@ public class BigQuerySource extends BaseSource {
   @VisibleForTesting
   TableResult runQuery(QueryJobConfiguration queryRequest, long pageSize) throws StageException {
     return delegate.runQuery(queryRequest, conf.timeout * 1000, pageSize);
+  }
+
+  private void deleteDestinationTable() {
+    if (destinationTableId != null) {
+      delegate.dropTable(destinationTableId);
+    }
   }
 }

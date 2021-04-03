@@ -29,6 +29,7 @@ import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.QueryResponse;
 import com.google.cloud.bigquery.StandardSQLTypeName;
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableResult;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -355,6 +356,10 @@ public class BigQueryDelegate {
         .setProjectId(projectId)
         .build();
     return options.getService();
+  }
+
+  public void dropTable(TableId tableId) {
+    bigquery.delete(tableId);
   }
 
 }

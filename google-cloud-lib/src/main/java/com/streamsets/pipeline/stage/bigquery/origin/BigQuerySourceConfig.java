@@ -57,11 +57,37 @@ public class BigQuerySourceConfig {
 
   @ConfigDef(
       required = true,
+      type = ConfigDef.Type.BOOLEAN,
+      label = "Allow large results",
+      description = "Allow large results (no size limit) ",
+      defaultValue = "false",
+      displayPosition = 40,
+      displayMode = ConfigDef.DisplayMode.ADVANCED,
+      group = "BIGQUERY"
+  )
+  public boolean allowLargeResults = false;
+
+  @ConfigDef(
+      required = true,
+      type = ConfigDef.Type.STRING,
+      label = "Destination table",
+      description = "Name of the destination table in the format dataset_name.table_name",
+      defaultValue = "",
+      displayPosition = 45,
+      displayMode = ConfigDef.DisplayMode.ADVANCED,
+      dependsOn = "allowLargeResults",
+      triggeredByValue = "true",
+      group = "BIGQUERY"
+  )
+  public String destinationTableName;
+
+  @ConfigDef(
+      required = true,
       type = ConfigDef.Type.NUMBER,
       defaultValue = "${5 * MINUTES}",
       label = "Query Timeout (sec)",
       elDefs = TimeEL.class,
-      displayPosition = 40,
+      displayPosition = 50,
       displayMode = ConfigDef.DisplayMode.ADVANCED,
       group = "BIGQUERY",
       min = 1

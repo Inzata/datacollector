@@ -769,7 +769,13 @@ public class ProductionPipelineRunner implements PipelineRunner, PushSourceConte
               if (expectedErrorClass.isInstance(e)) {
                 rethrow = true;
               }
-            } catch (ClassNotFoundException cnf) {}
+            } catch (ClassNotFoundException cnf) {
+              // nothing
+            } catch (RuntimeException rte) {
+              LOG.error("Failed to determine a class of the stopping error ", e);
+              LOG.error("Message: ", rte);
+            }
+
             if (rethrow) {
               throw(e);
             } else {
